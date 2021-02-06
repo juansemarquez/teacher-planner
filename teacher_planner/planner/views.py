@@ -56,3 +56,9 @@ def register(request):
         return HttpResponseRedirect(reverse("index"))            
     else:
         return render(request, "planner/register.html")
+
+def logout_view(request):
+    logout(request)
+    return render(request, "planner/login.html")
+
+
