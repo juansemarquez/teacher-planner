@@ -1,0 +1,22 @@
+{% extends "planner/layout.html" %}
+
+{% block body %}
+<div class="container">
+    <div class="cols-12 cols-lg-6">
+        
+    {% if message %}
+        <div>{{ message }}</div>
+    {% endif %}
+    {% if user.is_authenticated %}
+        <ul>
+            <li><a href="{% url 'schools' %}">Your schools</a></li>
+        </ul>
+    {% else %}
+        <p><a href="{% url 'login' %}">Please login</a></p>
+    {% endif %}
+
+    
+    </div>
+</div> 
+    
+{% endblock %}

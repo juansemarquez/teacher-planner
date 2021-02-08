@@ -22,13 +22,7 @@
                 {% endif %}
                 {% if user.is_authenticated %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'classes' %}">Your classes</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'lessons' %}">Your lessons</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'logout' %}">Log Out</a>
+                        <a class="nav-link" href="{% url 'schools' %}">Your schools</a>
                     </li>
                 {% else %}
                     <li class="nav-item">

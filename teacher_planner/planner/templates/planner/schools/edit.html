@@ -1,0 +1,31 @@
+{% extends "planner/layout.html" %}
+
+{% block body %}
+<div class="container">
+    <div class="cols-12 cols-lg-6">
+        
+    {% if message %}
+        <div>{{ message }}</div>
+    {% endif %}
+    {% if user.is_authenticated %}
+        {% if school is None %}
+            <h1>Create school</h1>
+            <form method="post" action="{% url 'schools' %}">
+        {% else %}
+            <h1>Update school</h1>
+            <form method="post" action="{% url 'schools' school.id %}">
+            <input type="hidden" name="_method" value="put">
+        {% endif %}
+        {% csrf_token %}
+        {{form}}
+        <input type="submit" value="Submit">
+        </form>
+    {% else %}
+        <p><a href="{% url 'login' %}">Please login</a></p>
+    {% endif %}
+
+    
+    </div>
+</div> 
+    
+{% endblock %}
