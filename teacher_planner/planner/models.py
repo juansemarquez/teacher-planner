@@ -11,6 +11,12 @@ class School(models.Model):
                                 related_name="schools")
     name = models.CharField(max_length=255,blank=False)
     level = models.CharField(max_length=255,blank=True)
+    def __str__(self):
+        s = self.name
+        if self.level:
+            s += ' ('+self.level+')'
+        return s
+
     
 class ClassGroup(models.Model):
     '''Represents one of the classes where the teacher works'''

@@ -5,8 +5,8 @@ from django.db import IntegrityError
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 
-from .models import School
-from .forms import NewSchoolForm
+from ..models import School
+from ..forms import NewSchoolForm
 
 @login_required
 def schools(request):
