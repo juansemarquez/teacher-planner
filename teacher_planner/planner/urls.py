@@ -8,7 +8,7 @@ urlpatterns = [
         path("register", views.register, name="register"),
         #Get->index #post->store
         path("schools", views.schools, name="schools"), 
-        #Get->show #patch->update
+        #Get->show #post->update
         path("schools/<int:school_id>", views.schools_show, name="school"),
         path("schools/create", views.schools_create, name="school_create"),
         path("schools/<int:school_id>/edit", views.schools_edit, 

@@ -1,0 +1,44 @@
+{% extends "planner/layout.html" %}
+
+{% block body %}
+<div class="container">
+    <div class="cols-12 cols-lg-6">
+        
+    {% if message %}
+        <div>{{ message }}</div>
+    {% endif %}
+    {% if user.is_authenticated %}
+        <h1>School data</h1>
+        <ul>
+            <li>Name: {{school.name}}</li>
+            <li>Level: {{school.level}}</li>
+
+        </ul>
+        <h3>Classes:</h3>
+        <ul>
+        {% for classgroup in school.classgroup %}
+            <li><a href="#">
+                    {{classgroup.name}}
+            </a></li>
+        {% empty %}
+        <li>No classes registered yet. <a href="#">Create one</a></li>
+        {% endfor%}            
+        </ul>
+        <a href="{% url 'school_edit' school.id%}" class="btn btn-primary">
+            Update school data
+        </a>
+        <br>
+        <form action="{% url 'school_delete' school.id%}" method="post" 
+              onsubmit="return confirm('Are you sure?');">
+            {% csrf_token %}
+            <input type="submit" value="Delete school" class="btn btn-danger">            
+        </form>
+    {% else %}
+        <p><a href="{% url 'login' %}">Please login</a></p>
+    {% endif %}
+
+    
+    </div>
+</div> 
+    
+{% endblock %}

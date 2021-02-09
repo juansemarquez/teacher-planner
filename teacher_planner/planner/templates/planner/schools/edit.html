@@ -13,8 +13,8 @@
             <form method="post" action="{% url 'schools' %}">
         {% else %}
             <h1>Update school</h1>
-            <form method="post" action="{% url 'schools' school.id %}">
-            <input type="hidden" name="_method" value="put">
+            <form method="post" action="{% url 'school' school.id %}">
+            <input type="hidden" name="school_id" value="{{school.id}}">
         {% endif %}
         {% csrf_token %}
         {{form}}
