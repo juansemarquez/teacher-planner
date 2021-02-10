@@ -12,10 +12,59 @@ class School(models.Model):
     name = models.CharField(max_length=255,blank=False)
     level = models.CharField(max_length=255,blank=True)
     def __str__(self):
-        s = self.name
         if self.level:
-            s += ' ('+self.level+')'
-        return s
+            return self.name + ' ('+self.level+')'
+        else:
+            return self.name
+
+class Schedule(models.Model):
+    '''Represents a moment in the week when a classgroup meets the teacher
+    One classgroup may have several schedules, i.e., the group meets the 
+    teacher more than once a week'''
+    class DayOfWeek(models.TextChoices):
+        MONDAY = 'MO', 'Monday'
+        TUESDAY = 'TU', 'Tuesday'
+        WEDNESDAY = 'WE', 'Wednesday'
+        THURSDAY = 'TH', 'Thursday'
+        FRIDAY = 'FR', 'Friday'
+        SATURDAY = 'SA', 'Saturday'
+        SUNDAY = 'SU', 'Sunday'
+    day_of_week = models.CharField(
+        max_length=2,
+        choices=DayOfWeek.choices,
+    )
+    starts = models.TimeField(auto_now=False, auto_now_add=False)
+    ends = models.TimeField(auto_now=False, auto_now_add=False)
+    classgroup = models.ForeignKey("ClassGroup", on_delete=models.CASCADE,
+                                   related_name="schedules")
+    teacher = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, 
+                                related_name="schedules")
+    def __repr__(self):
+        dow = Schedule.DayOfWeek(self.day_of_week).label
+        c = dow +' ('+str(self.starts)+'-'+str(self.ends)+')'
+        return c
+    def __str__(self):
+        return self.__repr__()
+
+    def is_valid(self):
+        if self.ends <= self.starts:
+            return False
+        for s in self.teacher.schedules.all():
+            if s.id == self.id:
+                continue
+            # - Both classes in the same day
+            # - this class starts after the visited class has started
+            # - this class starts before the visited class has ended
+            if self.day_of_week == s.day_of_week \
+                    and self.starts >= s.starts and self.starts < s.end:
+                return False
+            # - Both classes in the same day
+            # - this class ends after the visited class has started
+            # - this class ends before the visited class has ended
+            if self.day_of_week == s.day_of_week \
+                    and self.ends >= s.start and self.ends < s.end:
+                return False
+        return True
 
     
 class ClassGroup(models.Model):
@@ -26,6 +75,16 @@ class ClassGroup(models.Model):
                                related_name="classgroups")
     name = models.CharField(max_length=255,blank=False)
     description = models.CharField(max_length=500,blank=False)
+    number_of_students = models.PositiveSmallIntegerField(blank=True,default=0)
+
+    def __repr__(self):
+        if self.number_of_students:
+            n = ' ('+str(self.number_of_students)+' students)'
+        else:
+            n = ''
+        return self.name + " - " + self.school.name + n
+    def __str__(self):
+        return self.__repr__()
 
 class Lesson(models.Model):
     '''Represents a lesson in a class'''

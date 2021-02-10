@@ -1,0 +1,68 @@
+{% extends "planner/layout.html" %}
+{% load static %}
+
+{% block body %}
+<div class="container">
+    <div class="cols-12 cols-lg-6">
+        
+    {% if message %}
+        <div>{{ message }}</div>
+    {% endif %}
+    {% if user.is_authenticated %}
+        <h1>Class data</h1>
+        <ul>
+            <li>Name: {{classgroup.name}}</li>
+            {% if classgroup.description %}
+                <li>Description: {{classgroup.description}}</li>
+            {% endif %}
+            <li>School: {{ classgroup.school.name }}</li>
+            {% if classgroup.number_of_students > 0%}
+                <li>Number of students: {{classgroup.number_of_students}}</li>
+            {% else %}
+                <li>Number of students: Not specified</li>
+            {% endif %}
+        </ul>
+        <a class="btn btn-primary" href="{% url 'class_edit' classgroup.id%}">
+            Edit class data
+        </a>
+        <hr>
+        <h3>Schedule:</h3>
+        {% for s_id, s in schedules %}
+            <form action="{% url 'update_schedule' s_id %}" method="post"
+            class="update_schedule" id="update_schedule_{{s_id}}" data-id="{{s_id}}">
+                {% csrf_token %}
+                {{s}}
+                <div class="lock"></div>
+            </form>
+            <form action="{% url 'delete_schedule' s_id %}" method="post"
+            class="delete_schedule" id="delete_schedule_{{s_id}}" style="display:none;">
+            {% csrf_token %}
+            <input type="submit" value="Delete Schedule" class="btn btn-danger">
+            </form>
+        {% endfor%}            
+        <h3>Add new weekly schedule</h3>
+        <form action={% url 'create_schedule' classgroup.id%} method="post">
+            {% csrf_token %}
+            {{empty_form}}
+            <input type="submit" value="Add schedule">
+        </form>
+        <hr>
+        <form action="{% url 'class_delete' classgroup.id%}" method="post" 
+              onsubmit="return confirm('Are you sure?');">
+            {% csrf_token %}
+            <input type="submit" value="Delete class" class="btn btn-danger">
+        </form>
+    {% else %}
+        <p><a href="{% url 'login' %}">Please login</a></p>
+    {% endif %}
+
+    
+    </div>
+</div> 
+<script type="text/javascript" charset="utf-8">
+    var locked_image = "{% static 'planner/lock_closed.png' %}"
+    var unlocked_image = "{% static 'planner/lock_open.png' %}"
+    document.onload = lockUpdateSchedule();
+</script>
+    
+{% endblock %}

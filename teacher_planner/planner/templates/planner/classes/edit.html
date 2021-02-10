@@ -1,0 +1,26 @@
+{% extends "planner/layout.html" %}
+
+{% block body %}
+<div class="container">
+    <div class="cols-12 cols-lg-6">
+        
+    {% if message %}
+        <div>{{ message }}</div>
+    {% endif %}
+    {% if user.is_authenticated %}
+        <h1>Update class</h1>
+        <form method="post" action="{% url 'one_class' classgroup.id %}">
+        <input type="hidden" name="class_id" value="{{classgroup.id}}">
+        {% csrf_token %}
+        {{form}}
+        <input type="submit" value="Submit">
+        </form>
+    {% else %}
+        <p><a href="{% url 'login' %}">Please login</a></p>
+    {% endif %}
+
+    
+    </div>
+</div> 
+    
+{% endblock %}
