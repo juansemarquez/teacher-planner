@@ -1,7 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.contrib.auth import get_user_model
-
+import datetime
 #class Teacher(AbstractUser):
 #    pass
 
@@ -47,6 +47,12 @@ class Schedule(models.Model):
         return self.__repr__()
 
     def is_valid(self):
+        if isinstance(self.starts, str):
+            self.starts=datetime.datetime.strptime(self.starts,'%H:%M').time()
+        if isinstance(self.ends, str):
+            self.ends=datetime.datetime.strptime(self.ends,'%H:%M').time()
+
+
         if self.ends <= self.starts:
             return False
         for s in self.teacher.schedules.all():
@@ -56,13 +62,13 @@ class Schedule(models.Model):
             # - this class starts after the visited class has started
             # - this class starts before the visited class has ended
             if self.day_of_week == s.day_of_week \
-                    and self.starts >= s.starts and self.starts < s.end:
+                    and self.starts >= s.starts and self.starts < s.ends:
                 return False
             # - Both classes in the same day
             # - this class ends after the visited class has started
             # - this class ends before the visited class has ended
             if self.day_of_week == s.day_of_week \
-                    and self.ends >= s.start and self.ends < s.end:
+                    and self.ends >= s.starts and self.ends < s.ends:
                 return False
         return True
 

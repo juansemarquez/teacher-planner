@@ -1,8 +1,8 @@
 from django.test import Client, TestCase
-
-# Create your tests here.
-from .models import School, ClassGroup, Lesson, File, Material 
+from planner.models import School, ClassGroup, Lesson, File, Material, Schedule 
 from django.contrib.auth.models import User
+
+############## SCHOOLS ############## 
 
 class SchoolTestCase(TestCase):
     def setUp(self):
@@ -100,14 +100,4 @@ class SchoolTestCase(TestCase):
         response = c.post("/schools/"+str(s.id)+"/delete")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["schools"].count(), 2)
-
-
-
-
-
-
-
-
-
-
 
