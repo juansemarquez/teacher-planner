@@ -1,13 +1,35 @@
 from django.db import models
 from django.conf import settings
-from django.contrib.auth import get_user_model
+# from django.contrib.auth import get_user_model
+from django.contrib.auth.models import User
 import datetime
-#class Teacher(AbstractUser):
-#    pass
+class Teacher(User):
+    class Meta:
+        proxy = True
+
+    def get_lessons_by_taglist(tag_list):
+        ''' Receives a list of keyphrases, and returns a list of lessons, that
+        has at least one of the tags in the received list, ordered from the one
+        with most tags in common in first place, to the one with less tags 
+        in common at the end'''
+        if len(tag_list) == 0:
+            return []
+        parameters = [self.id] + tag_list
+        placeholder = [ 't.keyphrase in %s OR ' for tag in tag_list ]
+        placeholder[-1] = 't.keyphrase in %s '
+        # FIXME: Is it posible to achieve this with the ORM?
+        query = "SELECT DISTINCT l.* "
+        query+= "FROM planner_lesson l " 
+        query+= "JOIN planner_tag_lesson tl ON l.id = tl.lesson_id "
+        query+= "JOIN planner_tag t ON tl.tag_id = t.id "
+        query+= "WHERE teacher.id = %s AND ("
+        query += placeholder + ") "
+        query += "GROUP BY l.id ORDER BY count(*) DESC"
+        return Lesson.objects.raw(query, parameters)
 
 class School(models.Model):
     '''Represents one of the schools where the teacher works'''
-    teacher = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, 
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, 
                                 related_name="schools")
     name = models.CharField(max_length=255,blank=False)
     level = models.CharField(max_length=255,blank=True)
@@ -37,7 +59,7 @@ class Schedule(models.Model):
     ends = models.TimeField(auto_now=False, auto_now_add=False)
     classgroup = models.ForeignKey("ClassGroup", on_delete=models.CASCADE,
                                    related_name="schedules")
-    teacher = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, 
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, 
                                 related_name="schedules")
     def __repr__(self):
         dow = Schedule.DayOfWeek(self.day_of_week).label
@@ -75,7 +97,7 @@ class Schedule(models.Model):
     
 class ClassGroup(models.Model):
     '''Represents one of the classes where the teacher works'''
-    teacher = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, 
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, 
                                 related_name="classgroups")
     school = models.ForeignKey("School", on_delete=models.CASCADE, 
                                related_name="classgroups")
@@ -96,11 +118,11 @@ class Lesson(models.Model):
     '''Represents a lesson in a class'''
     class_group = models.ForeignKey("ClassGroup", on_delete=models.CASCADE,
                                     related_name="lessons")
-    teacher = models.ForeignKey(get_user_model(), on_delete=models.CASCADE,
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE,
                                 related_name="lessons")
     files = models.ManyToManyField("File", related_name="lessons")
     material = models.ManyToManyField("Material", related_name="lessons")
-    similar_lessons = models.ManyToManyField("Lesson")
+    
     goal = models.CharField(max_length=255,blank=False)
     activities = models.TextField(blank=False)
     #FIXME: Check timezones
@@ -108,11 +130,33 @@ class Lesson(models.Model):
     modified_at = models.DateTimeField(auto_now=True)
     date = models.DateField()
     afterthoughts = models.TextField(blank=True)
+    def similar_lessons(self):
+        ''' Returns a list of lessons (different than this one), in which each
+        lesson shares at least one tag with this one, ordered from the one
+        with most tags in common in first place, to the one with less tags 
+        in common at the end'''
+        tags = self.tags.all()
+        result = Lesson.objects.filter(teacher=self.teacher,
+                                    tag_id__in=tags).exclude(id=self.id).get()
+        return result
+
+    def similarity(self, other):
+        '''Compares this lesson with another one, and counts how many tags they
+        share. Returns int'''
+        # Creates sets from tags keyphrases
+        tag_list = self.tag_set()
+        other_tag_list = other.tag_set()
+        # How many elements do the sets have in common?
+        return len(tag_list.intersection(other_tag_list))
+
+    def tag_set(self):
+        ''' Returns a set from tags keyphrases (may be empty set)'''
+        return { tag.keyphrase for tag in self.tags }
 
 class File(models.Model):
     '''Represents a file the teacher needs for one or more lessons. Uploading 
     the actual file is not supported at the  moment. Just references.'''
-    teacher = models.ForeignKey(get_user_model(), on_delete=models.CASCADE,
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE,
                                 related_name="files")
     name = models.CharField(max_length=255,blank=False)
     description = models.CharField(max_length=500,blank=True)
@@ -121,8 +165,33 @@ class File(models.Model):
 class Material(models.Model):
     '''Represents an object (e.g.: a map or a basketball) that will be 
     necessary for one or more of the teacher's lessons'''
-    teacher = models.ForeignKey(get_user_model(), on_delete=models.CASCADE,
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE,
                                 related_name="material")
     name = models.CharField(max_length=255,blank=False)
     description = models.CharField(max_length=500,blank=True)
+
+class Tag(models.Model):
+    '''Represents a tag or keyphrase a teacher describes a lesson with. Any
+    lesson can have zero or more tags, and any tag can belong to one or more
+    lessons. Tags are used to find similar lessons: two lessons are similar to
+    each other if they share the same tags. In the context of this system, for
+    example:
+    - if lesson "x" and lesson "y" share one tag,
+    - and lesson "x" and lesson "z" share three tags,
+    - and lesson "x" and lesson "w" share no tags,
+    it is said that:
+    - lesson "x" isn't similar to lesson "w" (since they share no tags).
+    - lesson "x" is similar to lesson "y" and to lesson "z" (tags shared)
+    - lesson "x" is 'more similar' to lesson "z" (three tags shared) than to 
+        lesson "y" (only one tag shared).'''
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE,
+                                related_name="tags")
+    lessons = models.ManyToManyField("Lesson", related_name="tags")
+    keyphrase = models.CharField(max_length=100,blank=False, unique=True)
+    def __repr__(self):
+        return keyphrase
+    def __str__(self):
+        return keyphrase
+
+
 
