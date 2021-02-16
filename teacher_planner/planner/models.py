@@ -7,25 +7,17 @@ class Teacher(User):
     class Meta:
         proxy = True
 
-    def get_lessons_by_taglist(tag_list):
+    def get_lessons_by_taglist(self, tag_list):
         ''' Receives a list of keyphrases, and returns a list of lessons, that
         has at least one of the tags in the received list, ordered from the one
         with most tags in common in first place, to the one with less tags 
         in common at the end'''
+        if type(tag_list) is str:
+            tag_list = tag_list.strip()
+            tag_list = [ tag.strip() for tag in tag_list.split(',') ]
         if len(tag_list) == 0:
             return []
-        parameters = [self.id] + tag_list
-        placeholder = [ 't.keyphrase in %s OR ' for tag in tag_list ]
-        placeholder[-1] = 't.keyphrase in %s '
-        # FIXME: Is it posible to achieve this with the ORM?
-        query = "SELECT DISTINCT l.* "
-        query+= "FROM planner_lesson l " 
-        query+= "JOIN planner_tag_lesson tl ON l.id = tl.lesson_id "
-        query+= "JOIN planner_tag t ON tl.tag_id = t.id "
-        query+= "WHERE teacher.id = %s AND ("
-        query += placeholder + ") "
-        query += "GROUP BY l.id ORDER BY count(*) DESC"
-        return Lesson.objects.raw(query, parameters)
+        return self.lessons.filter(tags__keyphrase__in=tag_list).annotate(tag_times=models.Count('id')).order_by('-tag_times')
 
 class School(models.Model):
     '''Represents one of the schools where the teacher works'''
@@ -125,6 +117,8 @@ class Lesson(models.Model):
     
     goal = models.CharField(max_length=255,blank=False)
     activities = models.TextField(blank=False)
+    schedule = models.ForeignKey("Schedule", on_delete=models.SET_NULL,
+                                 blank=True, null=True)
     #FIXME: Check timezones
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
